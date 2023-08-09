@@ -13,7 +13,7 @@ export function SidebarDrawerProvider({children}:SidebarDrawerProviderProps){
     const disclosure = useDisclosure();
     const router = useRouter();
     useEffect(()=>{
-        disclosure.onClose()
+        disclosure.onClose();
     },[router.asPath])
     return(
         <SidebarDrawerContext.Provider value={disclosure}>
