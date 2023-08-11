@@ -1,4 +1,4 @@
-import { Factory, Model, createServer } from 'miragejs';
+import { ActiveModelSerializer, Factory, Model, createServer } from 'miragejs';
 import { faker } from '@faker-js/faker'
 
 type User = {
@@ -9,6 +9,9 @@ type User = {
 
 export function makeServer() {
     const server = createServer({
+        serializers: {
+            application: ActiveModelSerializer// permitir fazer cadastro de user e relacionamentos
+        },
         models: {
             user: Model.extend<Partial<User>>({})
         },
@@ -21,7 +24,7 @@ export function makeServer() {
                     return faker.internet.email().toLowerCase();
                 },
                 createdAt(){
-                    return faker.date.recent(10)
+                    return faker.date.recent({ days: 10 })
                 }
             })
         },

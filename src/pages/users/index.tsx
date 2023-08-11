@@ -1,40 +1,34 @@
 import { Header } from "@/src/components/Header";
 import { Pagination } from "@/src/components/Pagination";
 import { Sidebar } from "@/src/components/Sidebar";
-import { Box, Button, Checkbox, Flex, Heading, Icon, Spinner, Table, Tbody, Td, Text, Th, Thead, Tr, useBreakpointValue } from "@chakra-ui/react";
+import { api } from "@/src/services/api";
+import { getUsers, useUsers } from "@/src/services/hooks/useUsers";
+import { queryClite } from "@/src/services/queryClient";
+import { Box, Button, Checkbox, Flex, Heading, Icon, Spinner, Table, Tbody, Td, Text, Th, Thead, Tr, useBreakpointValue, Link as ChakraLink } from "@chakra-ui/react";
+import { QueryClient } from "@tanstack/react-query";
+import { GetServerSideProps } from "next";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useState } from "react";
 import { RiAddLine } from 'react-icons/ri';
-import { useQuery } from '@tanstack/react-query'
 
-
-export default function UserList() {
+export default function UserList({users}:any) {
+    console.log(users)
+    const [page, setPage] = useState(1);
     const isWideVersion = useBreakpointValue({
         base: false,
         lg: true
     });
 
-    const { data, isLoading, error } = useQuery({
-        queryKey: ['users'], queryFn: async () => {
-            const response = await fetch('http://localhost:3000/api/users');
-            const data = await response.json();
-            const users = data.users.map((user:any)=>{
-                return{
-                    id: user.id,
-                    name:user.name,
-                    email:user.email,
-                    createdAt: new Date(user.createdAt).toLocaleDateString('pt-BR',{
-                        day:'2-digit',
-                        month:'long',
-                        year:'numeric'
-                    })
-                }
-            })
-            return users;
-        }
-    })
+    const { data, isLoading, isFetching, error } = useUsers(page);
 
-
+    async function handlePrefetchUser(userId: string) {
+        await queryClite.prefetchQuery(['user', userId], async () => {
+            const response = await api.get(`/users/${userId}`);
+            return response.data;
+        }, {
+            staleTime: 1000 * 60 * 10 //10 minutos
+        })
+    }
 
     return (
         <Box>
@@ -54,6 +48,7 @@ export default function UserList() {
                             size="lg"
                             fontWeight="normal">
                             Usuários
+                            {!isLoading && isFetching && <Spinner size="sm" color="gray.500" ml="4" />}
                         </Heading>
                         <Link href="/users/create">
                             <Button
@@ -92,7 +87,7 @@ export default function UserList() {
                                     </Tr>
                                 </Thead>
                                 <Tbody>
-                                    {data.map((user:any) => {
+                                    {data?.users?.map((user: any) => {
                                         return (
                                             <Tr key={user.id}>
                                                 <Td px={["4", "4", "6"]}>
@@ -100,9 +95,12 @@ export default function UserList() {
                                                 </Td>
                                                 <Td>
                                                     <Box>
-                                                        <Text fontWeight="bold">
-                                                            {user.name}
-                                                        </Text>
+                                                        <ChakraLink color="purple.400" onMouseEnter={() => handlePrefetchUser(user.id)}>
+                                                            <Text fontWeight="bold">
+                                                                {user.name}
+                                                            </Text>
+                                                        </ChakraLink>
+
                                                         <Text fontSize="sm" color="gray.300">
                                                             {user.email}
                                                         </Text>
@@ -124,7 +122,11 @@ export default function UserList() {
                                     })}
                                 </Tbody>
                             </Table>
-                            <Pagination />
+                            <Pagination
+                                totalCountOfRegister={Number(data?.totalCount)}
+                                currentPage={page}
+                                onPageChange={setPage}
+                            />
                         </>)}
                 </Box>
             </Flex>

@@ -6,6 +6,10 @@ import Link from "next/link";
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { SubmitHandler, useForm } from "react-hook-form";
+import { useMutation } from "@tanstack/react-query";
+import { api } from "@/src/services/api";
+import { queryClite } from "@/src/services/queryClient";
+import { useRouter } from "next/router";
 
 type ValuesForms = {
     name: string;
@@ -22,16 +26,30 @@ const createUserFormSchema = yup.object().shape({
 })
 
 export default function CreateUser() {
+    const router = useRouter();
+    const createUser = useMutation(async(user:ValuesForms)=>{
+        const response = await api.post('/users',{
+            user:{
+                ...user,
+                created_at:new Date()
+            }
+        })
+        return response.data.user;
+    },{
+        onSuccess: () => {
+            queryClite.invalidateQueries(['users'])
+        }
+    });
 
     const { register, handleSubmit, formState } = useForm<ValuesForms>({
         resolver: yupResolver(createUserFormSchema)
     });
 
     const handleCreateUser: SubmitHandler<ValuesForms> = async (values) => {
-        await new Promise(resolve => setTimeout(resolve, 2000))
-
-        console.log(values)
+        await createUser.mutateAsync(values);
+        router.push('/users')        
     }
+
 
     return (
         <Box>
